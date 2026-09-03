@@ -12,6 +12,8 @@ Config priority is **CLI > options.yaml / options.yml > built-in defaults**. `op
 
 ## What easy mode does
 
+Easy mode is **only** `python -m src` with no arguments. Any CLI argument is complex mode (files only, unless `--add-to-playlist` is passed).
+
 No arguments means:
 
 1. Read the launcher DB and use the playset with `isActive = 1`.
@@ -20,7 +22,7 @@ No arguments means:
 4. Copy only the focus files whose `focus_tree.country` block assigns that tag (`tag` / `original_tag`).
 5. Set those trees' `focus` / `shared_focus` / `joint_focus` `cost` values to `0` (completes at the start of the next in-game day).
 6. Write a local mod named `{last_focus_mod}_{tag}_focus_tree_edited`.
-7. Build `thumbnail.png` by overlaying that country's 82x52 in-game flag on the `template_vanilla` 512x512 template (blank centre slot).
+7. Build `thumbnail.png` by overlaying that country's in-game flag on the `template_vanilla` 512x512 template, scaled to fill the blank flag slot.
 8. Put every playset mod that alters national focuses into `dependencies`, in playset order.
 9. Append the generated mod to the bottom of that playset.
 
@@ -60,14 +62,14 @@ Only **enabled** playset mods are used. Disabled rows are ignored.
 
 Mods produced by this tool (`displayName` ending in `Focus Tree Edited`, folder ending in `_focus_tree_edited`) are skipped when resolving last-editor, source files, and dependencies so a rerun updates the existing generated mod instead of treating it as a new upstream.
 
-When `--add-to-playlist` is in effect (the default), the tool:
+Easy mode (no CLI arguments) appends the generated mod to the current playset. Complex mode (any CLI argument) writes files only unless `--add-to-playlist` is passed.
+
+When adding to a playset, the tool:
 
 - upserts a `source = local` row in `mods`
 - puts the mod at `MAX(position) + 1` in `playsets_mods` (or moves an existing row to the bottom)
 - appends `mod/[folder].mod` to `dlc_load.json`
 - updates the matching `playsets_backup/[playsetId].json` if it exists
-
-Use `--no-add-to-playlist` to write files only.
 
 ## How the last focus-tree editor is chosen
 
@@ -136,21 +138,21 @@ Bundled templates live in `assets/thumbnail_templates/`:
 - `template_vanilla.png` — default. HOI4 cover typography (white block caps) and sepia war-map palette, **HOI4** above the flag slot, **Fast Focus Tree** with a rounded weather-spark bolt below the flag.
 - `template_owb.png` — Old World Blues marquee/neon title style, gold bulb letters, **OWB** only above the flag slot, **Fast Focus Tree** with a matching Fallout marquee bolt below the flag.
 
-An optional sibling `.json` file may set `flag_x` / `flag_y` for the 82x52 overlay. Otherwise the flag is centred.
+An optional sibling `.json` file may set `flag_x` / `flag_y` / `flag_w` / `flag_h` for the overlay. Otherwise a centred 82x52 slot is used. The flag is scaled to fill that rectangle.
 
-Search for the country tag's flag from the end of the playset backwards, then vanilla:
+Search for the country tag's largest flag with HOI4 aspect (`82:52`) from the end of the playset backwards, then vanilla:
 
 1. `gfx/flags/TAG.tga` (also `.png`)
 2. Ideology variants (`TAG_neutrality.tga`, ...)
-3. First `gfx/flags/TAG*.tga`
+3. Other `gfx/flags/TAG*.tga` with the same aspect (skip tiny `small/` icons)
 
 Option priority:
 
 1. `--thumbnail` — one 512x512 image used for every country in the run. Must already be 512x512. Ignores `--thumbnail-template` and `--country-flag`.
 2. `--thumbnail-template` — a file path, or an alias taken from the part after `template_` (`vanilla` → `template_vanilla`, `owb` → `template_owb`). Must be 512x512. Default `vanilla`.
-3. `--country-flag` — one 82x52 image used as the flag for every country in the run. Must already be 82x52. Ignored if `--thumbnail` is set.
+3. `--country-flag` — one image used as the flag for every country in the run. Must match HOI4 flag aspect (`82:52`). Ignored if `--thumbnail` is set.
 
-If `--country-flag` is omitted, each country uses its own `gfx/flags` image (resized to 82x52 only when the source is not already that size).
+If `--country-flag` is omitted, each country uses its own largest matching `gfx/flags` image.
 
 ## Save-game country detection
 
@@ -168,7 +170,7 @@ Used only when `country_tags` is not set and `all_countries` is false.
 - `src/paths.py` — document / Steam / workshop discovery
 - `src/pdx.py` — Clausewitz parse, cost rewrite, `.mod` writer
 - `src/game.py` — launcher DB, playset, load-order resolve, saves, flags
-- `src/thumbnail.py` — 512x512 templates, 82x52 flag overlay, size checks
+- `src/thumbnail.py` — 512x512 templates, flag aspect check, slot overlay
 - `src/generate.py` — orchestration and file output
 - `assets/thumbnail_templates/` — bundled `template_vanilla` and `template_owb` frames
 

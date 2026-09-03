@@ -16,7 +16,7 @@
 # playset: Old World Blues - Basic
 
 # Playset that should receive generated mods at the bottom of the load order.
-# Set to false to create files without changing any playset.
+# Leave commented to write files only.
 # add_to_playlist: Old World Blues - Basic
 
 # HOI4 focus cost in weeks. 0 completes a focus at the start of the next in-game day.
@@ -29,7 +29,8 @@
 # Bundled template name (vanilla, owb) or a path to a 512x512 PNG. Ignored if thumbnail is set.
 # thumbnail_template: vanilla
 
-# Path to one 82x52 flag image used for every country in this run. Ignored if thumbnail is set.
+# Path to one flag image used for every country in this run. Must match HOI4
+# flag aspect (82:52); it is scaled to fill the template slot. Ignored if thumbnail is set.
 # country_flag: C:/Users/[replace with username]/Pictures/my_flag.tga
 
 # Path overrides for non-default install locations.

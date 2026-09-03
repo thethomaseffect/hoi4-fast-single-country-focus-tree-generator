@@ -22,6 +22,7 @@ class Options:
     playset: str | None = None
     add_to_playlist: str | None = None
     add_to_playlist_enabled: bool = True
+    easy_mode: bool = False
     focus_time: float = DEFAULT_FOCUS_TIME
     thumbnail: Path | None = None
     thumbnail_template: str | None = None
@@ -125,6 +126,7 @@ def merge_options(yaml_opts: Options, cli: Options) -> Options:
             if cli.add_to_playlist_enabled is False
             else yaml_opts.add_to_playlist_enabled
         ),
+        easy_mode=cli.easy_mode,
         focus_time=cli.focus_time if cli.focus_time != DEFAULT_FOCUS_TIME or yaml_opts.focus_time == DEFAULT_FOCUS_TIME else yaml_opts.focus_time,
         thumbnail=cli.thumbnail or yaml_opts.thumbnail,
         thumbnail_template=cli.thumbnail_template or yaml_opts.thumbnail_template,

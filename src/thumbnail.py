@@ -3,10 +3,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageOps
 
 THUMBNAIL_SIZE = 512
 FLAG_SIZE = (82, 52)
+FLAG_ASPECT = FLAG_SIZE[0] / FLAG_SIZE[1]
+FLAG_ASPECT_TOLERANCE = 0.03
 DEFAULT_TEMPLATE_ALIAS = "vanilla"
 
 
@@ -18,14 +20,28 @@ def templates_dir() -> Path:
     return repo_root() / "assets" / "thumbnail_templates"
 
 
-def flag_slot_origin(template_path: Path | None = None, size: int = THUMBNAIL_SIZE) -> tuple[int, int]:
+def flag_aspect_ratio_ok(size: tuple[int, int]) -> bool:
+    width, height = size
+    if width <= 0 or height <= 0:
+        return False
+    return abs(width / height - FLAG_ASPECT) <= FLAG_ASPECT_TOLERANCE
+
+
+def flag_slot_rect(
+    template_path: Path | None = None, size: int = THUMBNAIL_SIZE
+) -> tuple[int, int, int, int]:
     width, height = FLAG_SIZE
+    origin_x = (size - width) // 2
+    origin_y = (size - height) // 2
     if template_path is not None:
         meta = template_path.with_suffix(".json")
         if meta.is_file():
             data = json.loads(meta.read_text(encoding="utf-8"))
-            return (int(data["flag_x"]), int(data["flag_y"]))
-    return ((size - width) // 2, (size - height) // 2)
+            origin_x = int(data.get("flag_x", origin_x))
+            origin_y = int(data.get("flag_y", origin_y))
+            width = int(data.get("flag_w", width))
+            height = int(data.get("flag_h", height))
+    return origin_x, origin_y, width, height
 
 
 def _require_size(image: Image.Image, expected: tuple[int, int], label: str, path: Path) -> None:
@@ -33,6 +49,14 @@ def _require_size(image: Image.Image, expected: tuple[int, int], label: str, pat
         raise ValueError(
             f"{label} must be {expected[0]}x{expected[1]} pixels, "
             f"got {image.size[0]}x{image.size[1]}: {path}"
+        )
+
+
+def _require_flag_aspect(image: Image.Image, path: Path) -> None:
+    if not flag_aspect_ratio_ok(image.size):
+        raise ValueError(
+            f"Country flag must be a rectangle with HOI4 flag aspect "
+            f"{FLAG_SIZE[0]}:{FLAG_SIZE[1]}, got {image.size[0]}x{image.size[1]}: {path}"
         )
 
 
@@ -106,18 +130,14 @@ def write_templated_thumbnail(
     template_path: Path,
     flag_path: Path,
     destination: Path,
-    *,
-    require_flag_size: bool,
 ) -> None:
     template = _open_rgba(template_path)
     _require_size(template, (THUMBNAIL_SIZE, THUMBNAIL_SIZE), "Thumbnail template", template_path)
     flag = _open_rgba(flag_path)
-    if require_flag_size:
-        _require_size(flag, FLAG_SIZE, "Country flag", flag_path)
-    elif flag.size != FLAG_SIZE:
-        flag = flag.resize(FLAG_SIZE, Image.Resampling.LANCZOS)
-    origin = flag_slot_origin(template_path)
+    _require_flag_aspect(flag, flag_path)
+    origin_x, origin_y, slot_w, slot_h = flag_slot_rect(template_path)
+    flag = ImageOps.fit(flag, (slot_w, slot_h), method=Image.Resampling.LANCZOS)
     canvas = template.copy()
-    canvas.paste(flag, origin, flag)
+    canvas.paste(flag, (origin_x, origin_y), flag)
     destination.parent.mkdir(parents=True, exist_ok=True)
     canvas.save(destination, format="PNG")

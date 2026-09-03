@@ -319,6 +319,10 @@ def plan_country_focus(
 
 
 def find_flag_path(paths: GamePaths, playset: Playset, tag: str) -> Path | None:
+    from PIL import Image
+
+    from .thumbnail import flag_aspect_ratio_ok
+
     tag = tag.upper()
     names = [
         f"{tag}.tga",
@@ -337,13 +341,34 @@ def find_flag_path(paths: GamePaths, playset: Playset, tag: str) -> Path | None:
     for root in search_roots:
         if not root.is_dir():
             continue
+        candidates: list[Path] = []
         for name in names:
             candidate = root / name
             if candidate.is_file():
-                return candidate
-        matches = sorted(root.glob(f"{tag}*.tga"))
-        if matches:
-            return matches[0]
+                candidates.append(candidate)
+        for pattern in (f"{tag}*.tga", f"{tag}*.png"):
+            candidates.extend(root.glob(pattern))
+        best: Path | None = None
+        best_area = -1
+        seen: set[Path] = set()
+        for candidate in candidates:
+            resolved = candidate.resolve()
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            try:
+                with Image.open(candidate) as image:
+                    size = image.size
+            except Exception:
+                continue
+            if not flag_aspect_ratio_ok(size):
+                continue
+            area = size[0] * size[1]
+            if area > best_area:
+                best = candidate
+                best_area = area
+        if best is not None:
+            return best
     return None
 
 

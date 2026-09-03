@@ -28,11 +28,15 @@ python -m src
 
 ### Easy Mode
 
-If you run the script without any arguments it will create a single mod using the currently selected playset for the selected country in the most recent save file and then add that mod at the bottom of the load order for that playset. This means you can start a new game with your chosen country, save and exit, run the script, then reopen the paradox launcher and play the same with focuses that complete at the start of the next in-game day.
+Easy mode is **only** `python -m src` with no arguments. Any argument means complex mode.
+
+With no arguments the script creates a single mod from the currently selected playset and the country in the most recent save, then adds that mod at the bottom of that playset. Start a new game, save and exit, run the script, then reopen the launcher.
 
 ### Complex Mode
 
-The script has two ways of being configured: Command-line arguments and a options.yaml file (recommended for compatibility across platforms). The order of priority are CLI argument, options.yml and finally the defaults of the software. The options available are:
+Any command-line argument puts you in complex mode. Generated mods are written as local files and are **not** added to a playset unless you pass `--add-to-playlist`.
+
+The script can also be configured with `options.yaml` (recommended for compatibility across platforms). Priority is CLI argument, then options.yml, then the software defaults. The options available are:
 
 | Option | Description | Default |
 | --- | --- | --- |
@@ -40,12 +44,12 @@ The script has two ways of being configured: Command-line arguments and a option
 | `--all-countries` | Creates/Updates mods for every country that has a loaded focus tree. Providing this argument means `--country-tags` is ignored. | Off |
 | `--save-game-location` | Overwrite the default save game location for the game. The save game location is only used by quick mode. | `Documents/Paradox Interactive/Hearts of Iron IV/save games` |
 | `--playset` | The name of the playset to base the changes on. | Currently selected playset in the launcher |
-| `--add-to-playlist` | Will add any created mods to the provided playlist. Beware using this with `--all-countries` because it could be a lot of mods. | Same playset the trees were generated from |
-| `--no-add-to-playlist` | Create the local mod files without changing any playset. | Off |
+| `--add-to-playlist` | Add generated mods to this playset. Complex mode does not add anything unless you pass this. Beware using it with `--all-countries`. | Off |
+| `--no-add-to-playlist` | Do not add generated mods to a playset (overrides `add_to_playlist`). | Off |
 | `--focus-time` | HOI4 focus `cost` (weeks) written to all selected focuses. The default of `0` completes a focus at the start of the next in-game day. | `0` |
 | `--thumbnail` | Path to one 512x512 image. That same image is written as `thumbnail.png` for every country tag generated in this run. When set, `--thumbnail-template` and `--country-flag` are ignored. | Off |
 | `--thumbnail-template` | Bundled template name or a path to a 512x512 PNG. The in-game flag is overlaid in the blank centre slot. Names: `vanilla` → `template_vanilla` (default), `owb` → `template_owb`. Ignored if `--thumbnail` is set. | `vanilla` |
-| `--country-flag` | Path to one 82x52 flag image used for every country tag generated in this run. Ignored if `--thumbnail` is set. | Each country's `gfx/flags` image |
+| `--country-flag` | Path to one flag image used for every country in this run. Must match HOI4 flag aspect (`82:52`); it is scaled to fill the template slot. Ignored if `--thumbnail` is set. | Each country's `gfx/flags` image |
 
 Commented defaults for every option also live in `options.yaml`. YAML keys use underscores (`country_tags`, `focus_time`, ...).
 

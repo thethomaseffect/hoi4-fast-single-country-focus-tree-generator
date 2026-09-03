@@ -60,6 +60,8 @@ def _target_tags(options: Options, paths: GamePaths, playset: Playset) -> list[s
 def _playlist_target(options: Options, analysis_playset: Playset, paths: GamePaths) -> Playset | None:
     if not options.add_to_playlist_enabled:
         return None
+    if not options.easy_mode and not options.add_to_playlist:
+        return None
     name = options.add_to_playlist or analysis_playset.name
     if name == analysis_playset.name:
         return analysis_playset
@@ -121,17 +123,14 @@ def write_country_mod(
     else:
         if options.country_flag:
             flag = options.country_flag
-            require_flag_size = True
         else:
             flag = find_flag_path(paths, playset, plan.tag)
             if flag is None:
                 raise FileNotFoundError(f"Could not find a flag for {plan.tag}")
-            require_flag_size = False
         write_templated_thumbnail(
             resolve_thumbnail_template(options.thumbnail_template),
             flag,
             thumbnail_dest,
-            require_flag_size=require_flag_size,
         )
 
     supported = _supported_version(paths, plan)

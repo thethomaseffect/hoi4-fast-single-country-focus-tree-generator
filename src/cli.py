@@ -34,7 +34,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--save-game-location",
         dest="save_game_location",
-        help="Override the HOI4 save games directory (easy mode only).",
+        help="Override the HOI4 save games directory. Unused when --country-tags or --all-countries is set.",
     )
     parser.add_argument(
         "--playset",
@@ -44,13 +44,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--add-to-playlist",
         dest="add_to_playlist",
-        help="Playset that should receive the generated mod(s) at the bottom of the load order.",
+        help=(
+            "Playset that should receive the generated mod(s) at the bottom of "
+            "the load order. Complex mode does not add anything to a playset "
+            "unless you pass this. Beware using it with --all-countries."
+        ),
     )
     parser.add_argument(
         "--no-add-to-playlist",
         dest="no_add_to_playlist",
         action="store_true",
-        help="Create the local mod files without changing any playset.",
+        help="Do not add generated mods to a playset (overrides add_to_playlist).",
     )
     parser.add_argument(
         "--focus-time",
@@ -80,8 +84,9 @@ def build_parser() -> argparse.ArgumentParser:
         "--country-flag",
         dest="country_flag",
         help=(
-            "Path to one in-game-sized flag image (82x52) used for every country "
-            "tag generated in this run. Ignored if --thumbnail is set."
+            "Path to one country flag image used for every country tag generated "
+            "in this run. Must be a rectangle with HOI4 flag aspect (82:52). "
+            "It is scaled to fill the template slot. Ignored if --thumbnail is set."
         ),
     )
     return parser
@@ -122,6 +127,7 @@ def _cli_overrides(args: argparse.Namespace, yaml_opts: Options) -> Options:
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
+    cli_argv = sys.argv[1:] if argv is None else list(argv)
     args = parser.parse_args(argv)
     try:
         yaml_data: dict = {}
@@ -130,6 +136,7 @@ def main(argv: list[str] | None = None) -> int:
             if yaml_data:
                 break
         options = _cli_overrides(args, options_from_yaml(yaml_data))
+        options.easy_mode = len(cli_argv) == 0
         generated = generate(options)
     except Exception as exc:
         print(f"error: {exc}", file=sys.stderr)
