@@ -49,9 +49,9 @@ class PlaysetMod:
         folder = self.dir_path.name.lower()
         registry = (self.game_registry_id or "").lower()
         return (
-            display.endswith(" focus tree edited")
-            or folder.endswith("_focus_tree_edited")
-            or registry.endswith("_focus_tree_edited.mod")
+            display.endswith(" fast focus tree")
+            or folder.endswith("_fast_focus_tree")
+            or registry.endswith("_fast_focus_tree.mod")
         )
 
 
@@ -444,12 +444,42 @@ def latest_save_tag(paths: GamePaths, save_game_location: Path | None = None) ->
 
 
 def generated_mod_folder_name(last_mod_name: str, tag: str) -> str:
-    return f"{slugify(last_mod_name)}_{tag.lower()}_focus_tree_edited"
+    return f"{slugify(last_mod_name)}_{tag.lower()}_fast_focus_tree"
 
 
-def generated_mod_display_name(country_name: str) -> str:
+def _alias_lookup(last_mod_name: str, aliases: dict[str, str]) -> str | None:
+    name = (last_mod_name or "").strip()
+    if not name or not aliases:
+        return None
+    if name in aliases:
+        return aliases[name]
+    lowered = {key.lower(): value for key, value in aliases.items()}
+    if name.lower() in lowered:
+        return lowered[name.lower()]
+    slugged = {slugify(key): value for key, value in aliases.items()}
+    return slugged.get(slugify(name))
+
+
+def _title_prefix(last_mod_name: str, aliases: dict[str, str]) -> str:
+    mapped = _alias_lookup(last_mod_name, aliases)
+    if mapped is not None:
+        return mapped.replace('"', "'").strip()
+    name = (last_mod_name or "").replace('"', "'").strip()
+    if not name or name.lower() == "vanilla":
+        return ""
+    return name
+
+
+def generated_mod_display_name(
+    country_name: str,
+    last_mod_name: str = "",
+    aliases: dict[str, str] | None = None,
+) -> str:
     cleaned = country_name.replace('"', "'").strip()
-    return f"{cleaned} Focus Tree Edited"
+    prefix = _title_prefix(last_mod_name, aliases or {})
+    if prefix:
+        return f"{prefix} {cleaned} Fast Focus Tree"
+    return f"{cleaned} Fast Focus Tree"
 
 
 def remove_local_mod_files(paths: GamePaths, folder_name: str) -> None:
@@ -489,14 +519,35 @@ def unregister_local_mod(paths: GamePaths, folder_name: str) -> None:
 
 
 def stale_generated_folders(paths: GamePaths, tag: str, keep_folder: str) -> list[str]:
-    suffix = f"_{tag.lower()}_focus_tree_edited"
-    found: list[str] = []
-    if not paths.mods.is_dir():
-        return found
-    for path in paths.mods.iterdir():
-        if path.is_dir() and path.name.endswith(suffix) and path.name != keep_folder:
-            found.append(path.name)
-    return found
+    suffix = f"_{tag.lower()}_fast_focus_tree"
+    keep = keep_folder.lower()
+    found: set[str] = set()
+
+    def consider(name: str | None) -> None:
+        if not name:
+            return
+        if name.lower() == keep:
+            return
+        if name.lower().endswith(suffix):
+            found.add(name)
+
+    if paths.mods.is_dir():
+        for path in paths.mods.iterdir():
+            if path.is_dir():
+                consider(path.name)
+            elif path.suffix.lower() == ".mod":
+                consider(path.stem)
+
+    if paths.launcher_db.is_file():
+        conn = _connect(paths)
+        try:
+            for row in conn.execute("SELECT gameRegistryId, dirPath FROM mods"):
+                registry = row["gameRegistryId"] or ""
+                consider(Path(registry).name.removesuffix(".mod") if registry else None)
+                consider(Path(row["dirPath"]).name if row["dirPath"] else None)
+        finally:
+            conn.close()
+    return sorted(found)
 
 
 def register_local_mod(
@@ -621,7 +672,12 @@ def update_dlc_load(paths: GamePaths, folder_name: str) -> None:
         paths.dlc_load.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
-def update_playset_backup(paths: GamePaths, playset: Playset, display_name: str) -> None:
+def update_playset_backup(
+    paths: GamePaths,
+    playset: Playset,
+    display_name: str,
+    country_name: str | None = None,
+) -> None:
     backup = paths.playsets_backup / f"{playset.id}.json"
     if not backup.is_file():
         return
@@ -630,12 +686,19 @@ def update_playset_backup(paths: GamePaths, playset: Playset, display_name: str)
     except json.JSONDecodeError:
         return
     mods = list(data.get("mods") or [])
-    for item in mods:
-        if item.get("displayName") == display_name:
-            item["enabled"] = True
-            item["position"] = len(mods) - 1
-            backup.write_text(json.dumps(data, separators=(",", ":")), encoding="utf-8")
-            return
-    mods.append({"displayName": display_name, "enabled": True, "position": len(mods)})
-    data["mods"] = mods
+    cleaned_country = (country_name or "").replace('"', "'").strip()
+    suffix = f"{cleaned_country} Fast Focus Tree" if cleaned_country else ""
+
+    def is_same_generated(existing: str) -> bool:
+        if existing == display_name:
+            return True
+        if not suffix:
+            return False
+        return existing == suffix or existing.endswith(f" {suffix}")
+
+    kept = [item for item in mods if not is_same_generated(str(item.get("displayName") or ""))]
+    kept.append({"displayName": display_name, "enabled": True, "position": len(kept)})
+    for index, item in enumerate(kept):
+        item["position"] = index
+    data["mods"] = kept
     backup.write_text(json.dumps(data, separators=(",", ":")), encoding="utf-8")

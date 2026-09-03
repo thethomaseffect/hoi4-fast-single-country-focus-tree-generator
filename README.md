@@ -53,6 +53,8 @@ The script can also be configured with `options.yaml` (recommended for compatibi
 
 Commented defaults for every option also live in `options.yaml`. YAML keys use underscores (`country_tags`, `focus_time`, ...).
 
+Generated mod titles can include a prefix from `mod_name_alias.yaml`. Keys are the last-editor display name (the mod that supplied the winning focus tree). Old World Blues is shipped as `OWB`, so NCR becomes `OWB New California Republic Fast Focus Tree`. Vanilla stays unprefixed. Any other last-editor that is not in that file uses its full display name as the prefix.
+
 ## Guidelines for using this tool
 
 This software is open source and licensed under the MIT licence.

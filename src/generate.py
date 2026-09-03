@@ -4,7 +4,7 @@ import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
-from .config import Options
+from .config import Options, load_mod_name_aliases
 from .game import (
     CountryFocusPlan,
     Playset,
@@ -102,9 +102,10 @@ def write_country_mod(
     playset: Playset,
     plan: CountryFocusPlan,
     country_name: str,
+    aliases: dict[str, str] | None = None,
 ) -> GeneratedMod:
     folder_name = generated_mod_folder_name(plan.last_mod_name, plan.tag)
-    display_name = generated_mod_display_name(country_name)
+    display_name = generated_mod_display_name(country_name, plan.last_mod_name, aliases)
     for stale in stale_generated_folders(paths, plan.tag, folder_name):
         unregister_local_mod(paths, stale)
         remove_local_mod_files(paths, stale)
@@ -177,6 +178,7 @@ def generate(options: Options) -> list[GeneratedMod]:
     tags = _target_tags(options, paths, playset)
     country_names = resolve_country_names(paths, playset)
     playlist = _playlist_target(options, playset, paths)
+    aliases = load_mod_name_aliases()
 
     created: list[GeneratedMod] = []
     missing: list[str] = []
@@ -185,12 +187,14 @@ def generate(options: Options) -> list[GeneratedMod]:
         if plan is None:
             missing.append(tag)
             continue
+        country_name = country_names.get(plan.tag, plan.tag)
         generated = write_country_mod(
             options,
             paths,
             playset,
             plan,
-            country_names.get(plan.tag, plan.tag),
+            country_name,
+            aliases,
         )
         if playlist is not None:
             register_local_mod(
@@ -202,7 +206,7 @@ def generate(options: Options) -> list[GeneratedMod]:
                 generated.path / "thumbnail.png",
             )
             update_dlc_load(paths, generated.folder_name)
-            update_playset_backup(paths, playlist, generated.display_name)
+            update_playset_backup(paths, playlist, generated.display_name, country_name)
         created.append(generated)
 
     if not created:

@@ -1,0 +1,11 @@
+# Prefix added to generated mod titles (descriptor name / launcher display name)
+# when this last-editor supplied the winning focus tree.
+#
+# Keys are the last-editor display name. Matching is case-insensitive;
+# slugs also match (Old World Blues = old_world_blues).
+#
+# - Listed mods use this prefix: OWB New California Republic Fast Focus Tree
+# - Vanilla with no entry has no prefix: Germany Fast Focus Tree
+# - Any other unlisted mod uses its full display name as the prefix
+#
+Old World Blues: OWB

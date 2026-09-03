@@ -12,6 +12,7 @@ except ImportError:  # pragma: no cover
 
 DEFAULT_FOCUS_TIME = 0
 YAML_FILENAMES = ("options.yaml", "options.yml")
+ALIAS_FILENAMES = ("mod_name_alias.yaml", "mod_name_alias.yml")
 
 
 @dataclass
@@ -77,6 +78,42 @@ def load_yaml_options(search_dir: Path) -> dict[str, Any]:
             if not isinstance(data, dict):
                 raise ValueError(f"{path} must contain a YAML mapping")
             return data
+    return {}
+
+
+def _parse_mod_name_aliases(path: Path) -> dict[str, str]:
+    text = path.read_text(encoding="utf-8")
+    if not _yaml_has_values(text):
+        return {}
+    if yaml is None:
+        raise RuntimeError(
+            f"Found {path.name} but PyYAML is not installed. "
+            "Run: pip install -r requirements.txt"
+        )
+    data = yaml.safe_load(text) or {}
+    if not isinstance(data, dict):
+        raise ValueError(f"{path} must contain a YAML mapping of mod name to prefix")
+    aliases: dict[str, str] = {}
+    for key, value in data.items():
+        name = str(key).strip()
+        if not name:
+            continue
+        aliases[name] = "" if value is None else str(value).strip()
+    return aliases
+
+
+def load_mod_name_aliases(search_dirs: list[Path] | None = None) -> dict[str, str]:
+    dirs = search_dirs or [Path.cwd(), Path(__file__).resolve().parent.parent]
+    seen: set[Path] = set()
+    for directory in dirs:
+        resolved = directory.resolve()
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        for name in ALIAS_FILENAMES:
+            path = resolved / name
+            if path.is_file():
+                return _parse_mod_name_aliases(path)
     return {}
 
 

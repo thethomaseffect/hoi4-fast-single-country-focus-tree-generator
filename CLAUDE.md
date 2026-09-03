@@ -21,7 +21,7 @@ No arguments means:
 3. Resolve `common/national_focus` through vanilla + that playset (including `replace_path` and same-filename overwrites).
 4. Copy only the focus files whose `focus_tree.country` block assigns that tag (`tag` / `original_tag`).
 5. Set those trees' `focus` / `shared_focus` / `joint_focus` `cost` values to `0` (completes at the start of the next in-game day).
-6. Write a local mod named `{last_focus_mod}_{tag}_focus_tree_edited`.
+6. Write a local mod named `{last_focus_mod}_{tag}_fast_focus_tree`.
 7. Build `thumbnail.png` by overlaying that country's in-game flag on the `template_vanilla` 512x512 template, scaled to fill the blank flag slot.
 8. Put every playset mod that alters national focuses into `dependencies`, in playset order.
 9. Append the generated mod to the bottom of that playset.
@@ -60,7 +60,7 @@ Important tables:
 
 Only **enabled** playset mods are used. Disabled rows are ignored.
 
-Mods produced by this tool (`displayName` ending in `Focus Tree Edited`, folder ending in `_focus_tree_edited`) are skipped when resolving last-editor, source files, and dependencies so a rerun updates the existing generated mod instead of treating it as a new upstream.
+Mods produced by this tool (`displayName` ending in `Fast Focus Tree`, folder ending in `_fast_focus_tree`) are skipped when resolving last-editor, source files, and dependencies so a rerun updates the existing generated mod instead of treating it as a new upstream.
 
 Easy mode (no CLI arguments) appends the generated mod to the current playset. Complex mode (any CLI argument) writes files only unless `--add-to-playlist` is passed.
 
@@ -106,10 +106,11 @@ Documents/Paradox Interactive/Hearts of Iron IV/mod/
 
 Naming:
 
-- Folder and `.mod` file: `{last_mod_slug}_{country_tag}_focus_tree_edited`
+- Folder and `.mod` file: `{last_mod_slug}_{country_tag}_fast_focus_tree`
 - `last_mod_slug` is the last editor's display name, lowercased, non-alphanumerics turned into underscores
-- Example: Old World Blues + NCR → `old_world_blues_ncr_focus_tree_edited`
-- `descriptor.mod` `name`: `{country name} Focus Tree Edited` (example: `New California Republic Focus Tree Edited`)
+- Example: Old World Blues + NCR → `old_world_blues_ncr_fast_focus_tree`
+- `descriptor.mod` `name` prefix comes from `mod_name_alias.yaml` (last-editor display name → short prefix). Vanilla with no alias has no prefix. Any other unlisted last-editor uses its full display name.
+- Examples: vanilla Germany → `Germany Fast Focus Tree`; Old World Blues NCR → `OWB New California Republic Fast Focus Tree`; an unlisted overhaul named `Cool Trees` → `Cool Trees Germany Fast Focus Tree`
 - Country name comes from the playset `common/country_tags` file (`NCR = "countries/NCR - New California Republic.txt"`), then English localisation `TAG:` if the filename is only the tag (`USA.txt` → `United States`)
 - Country tag is part of the folder name so `--all-countries` cannot collide when several countries share the same last editor
 
@@ -123,7 +124,7 @@ Dependencies are the display names of every playset mod that has a `common/natio
 
 Tags written on generated mods: `National Focuses`, `Utilities`.
 
-Reruns delete and recreate the same folder. Back up a hand-edited `thumbnail.png` first.
+Reruns delete leftover `{last_mod_slug}_{tag}_fast_focus_tree` folders, `.mod` files, and launcher rows for that country, then recreate the same folder. Back up a hand-edited `thumbnail.png` first.
 
 ## Focus cost rules
 
@@ -166,12 +167,13 @@ Used only when `country_tags` is not set and `all_countries` is false.
 ## Package map
 
 - `src/cli.py` — argparse and YAML merge
-- `src/config.py` — options dataclass
+- `src/config.py` — options dataclass, `mod_name_alias.yaml` loader
 - `src/paths.py` — document / Steam / workshop discovery
 - `src/pdx.py` — Clausewitz parse, cost rewrite, `.mod` writer
 - `src/game.py` — launcher DB, playset, load-order resolve, saves, flags
 - `src/thumbnail.py` — 512x512 templates, flag aspect check, slot overlay
 - `src/generate.py` — orchestration and file output
+- `mod_name_alias.yaml` — last-editor display name → generated-mod title prefix (`Old World Blues: OWB`)
 - `assets/thumbnail_templates/` — bundled `template_vanilla` and `template_owb` frames
 
 When changing generator behaviour, update this file and the README CLI table together.
