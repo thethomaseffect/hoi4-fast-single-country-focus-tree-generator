@@ -24,6 +24,8 @@ class Options:
     add_to_playlist_enabled: bool = True
     focus_time: float = DEFAULT_FOCUS_TIME
     thumbnail: Path | None = None
+    thumbnail_template: str | None = None
+    country_flag: Path | None = None
     hoi4_documents: Path | None = None
     workshop_content: Path | None = None
     hoi4_install: Path | None = None
@@ -99,6 +101,10 @@ def options_from_yaml(data: dict[str, Any]) -> Options:
         add_to_playlist_enabled=add_enabled,
         focus_time=float(focus_time),
         thumbnail=_as_path(data.get("thumbnail")),
+        thumbnail_template=(
+            str(data["thumbnail_template"]).strip() if data.get("thumbnail_template") else None
+        ),
+        country_flag=_as_path(data.get("country_flag")),
         hoi4_documents=_as_path(data.get("hoi4_documents")),
         workshop_content=_as_path(data.get("workshop_content")),
         hoi4_install=_as_path(data.get("hoi4_install")),
@@ -121,6 +127,8 @@ def merge_options(yaml_opts: Options, cli: Options) -> Options:
         ),
         focus_time=cli.focus_time if cli.focus_time != DEFAULT_FOCUS_TIME or yaml_opts.focus_time == DEFAULT_FOCUS_TIME else yaml_opts.focus_time,
         thumbnail=cli.thumbnail or yaml_opts.thumbnail,
+        thumbnail_template=cli.thumbnail_template or yaml_opts.thumbnail_template,
+        country_flag=cli.country_flag or yaml_opts.country_flag,
         hoi4_documents=cli.hoi4_documents or yaml_opts.hoi4_documents,
         workshop_content=cli.workshop_content or yaml_opts.workshop_content,
         hoi4_install=cli.hoi4_install or yaml_opts.hoi4_install,

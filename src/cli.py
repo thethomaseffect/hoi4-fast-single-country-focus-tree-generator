@@ -4,17 +4,17 @@ import argparse
 import sys
 from pathlib import Path
 
-from hoi4_focus_gen.config import (
+from .config import (
     Options,
     load_yaml_options,
     options_from_yaml,
 )
-from hoi4_focus_gen.generate import generate
+from .generate import generate
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="hoi4_focus_gen",
+        prog="src",
         description=(
             "Generate a local HOI4 mod that rewrites one country's focus tree "
             "to the version actually loaded by the selected playset."
@@ -62,8 +62,26 @@ def build_parser() -> argparse.ArgumentParser:
         "--thumbnail",
         dest="thumbnail",
         help=(
-            "Path to one image file used as thumbnail.png for every country "
-            "tag generated in this run. Omit to use each country's flag."
+            "Path to one 512x512 image used as thumbnail.png for every country "
+            "tag generated in this run. When set, --thumbnail-template and "
+            "--country-flag are ignored."
+        ),
+    )
+    parser.add_argument(
+        "--thumbnail-template",
+        dest="thumbnail_template",
+        help=(
+            "Bundled template name (vanilla, owb) or a path to a 512x512 PNG. "
+            "The country flag is overlaid in the blank centre slot. Ignored if "
+            "--thumbnail is set. Default: vanilla."
+        ),
+    )
+    parser.add_argument(
+        "--country-flag",
+        dest="country_flag",
+        help=(
+            "Path to one in-game-sized flag image (82x52) used for every country "
+            "tag generated in this run. Ignored if --thumbnail is set."
         ),
     )
     return parser
@@ -95,6 +113,10 @@ def _cli_overrides(args: argparse.Namespace, yaml_opts: Options) -> Options:
         merged.focus_time = args.focus_time
     if args.thumbnail:
         merged.thumbnail = Path(args.thumbnail)
+    if args.thumbnail_template:
+        merged.thumbnail_template = args.thumbnail_template
+    if args.country_flag:
+        merged.country_flag = Path(args.country_flag)
     return merged
 
 

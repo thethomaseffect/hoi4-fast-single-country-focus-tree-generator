@@ -262,16 +262,31 @@ def focus_trees_in_file(root: PdxObject) -> list[FocusTreeInfo]:
     return trees
 
 
-def country_tags_from_text(text: str) -> list[str]:
-    tags: list[str] = []
+COUNTRY_TAG_LINE_RE = re.compile(r'^([A-Z0-9]{2,4})\s*=\s*"([^"]+)"')
+LOC_COUNTRY_KEY_RE = re.compile(r'^\s*([A-Z0-9]{2,4}):(?:\d+)?\s+"([^"]+)"', re.MULTILINE)
+
+
+def country_tag_entries_from_text(text: str) -> list[tuple[str, str]]:
+    entries: list[tuple[str, str]] = []
     for line in text.splitlines():
         stripped = line.strip()
         if not stripped or stripped.startswith("#"):
             continue
-        match = re.match(r"^([A-Z0-9]{2,4})\s*=\s*\"", stripped)
+        match = COUNTRY_TAG_LINE_RE.match(stripped)
         if match:
-            tags.append(match.group(1))
-    return tags
+            entries.append((match.group(1), match.group(2).replace("\\", "/")))
+    return entries
+
+
+def country_tags_from_text(text: str) -> list[str]:
+    return [tag for tag, _path in country_tag_entries_from_text(text)]
+
+
+def loc_country_names_from_text(text: str) -> dict[str, str]:
+    names: dict[str, str] = {}
+    for match in LOC_COUNTRY_KEY_RE.finditer(text):
+        names[match.group(1)] = match.group(2)
+    return names
 
 
 DESCRIPTOR_NAME_RE = re.compile(r'^\s*name\s*=\s*"([^"]*)"', re.MULTILINE)

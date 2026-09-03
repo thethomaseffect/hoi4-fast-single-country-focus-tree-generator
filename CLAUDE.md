@@ -5,7 +5,7 @@ This repository is a Python CLI that builds **local** Hearts of Iron IV mods. Ea
 Run it from the repo root after `pip install -r requirements.txt`:
 
 ```
-python -m hoi4_focus_gen
+python -m src
 ```
 
 Config priority is **CLI > options.yaml / options.yml > built-in defaults**. `options.yaml` ships with every default commented out. Use `[replace with username]` in documented example paths, never a hard-coded Windows username.
@@ -20,7 +20,7 @@ No arguments means:
 4. Copy only the focus files whose `focus_tree.country` block assigns that tag (`tag` / `original_tag`).
 5. Set those trees' `focus` / `shared_focus` / `joint_focus` `cost` values to `0` (completes at the start of the next in-game day).
 6. Write a local mod named `{last_focus_mod}_{tag}_focus_tree_edited`.
-7. Build `thumbnail.png` as a 512x512 PNG of that country's flag (flag scaled to fit, transparent padding).
+7. Build `thumbnail.png` by overlaying that country's 82x52 in-game flag on the `template_vanilla` 512x512 template (blank centre slot).
 8. Put every playset mod that alters national focuses into `dependencies`, in playset order.
 9. Append the generated mod to the bottom of that playset.
 
@@ -107,7 +107,8 @@ Naming:
 - Folder and `.mod` file: `{last_mod_slug}_{country_tag}_focus_tree_edited`
 - `last_mod_slug` is the last editor's display name, lowercased, non-alphanumerics turned into underscores
 - Example: Old World Blues + NCR → `old_world_blues_ncr_focus_tree_edited`
-- `descriptor.mod` `name`: `{TAG} Focus Tree Edited` (example: `NCR Focus Tree Edited`)
+- `descriptor.mod` `name`: `{country name} Focus Tree Edited` (example: `New California Republic Focus Tree Edited`)
+- Country name comes from the playset `common/country_tags` file (`NCR = "countries/NCR - New California Republic.txt"`), then English localisation `TAG:` if the filename is only the tag (`USA.txt` → `United States`)
 - Country tag is part of the folder name so `--all-countries` cannot collide when several countries share the same last editor
 
 `descriptor.mod` has no `path`. The sibling `[slug].mod` file sets `path` with forward slashes, matching other local mods.
@@ -130,15 +131,26 @@ Reruns delete and recreate the same folder. Back up a hand-edited `thumbnail.png
 
 ## Flags and thumbnails
 
+Bundled templates live in `assets/thumbnail_templates/`:
+
+- `template_vanilla.png` — default. HOI4 cover typography (white block caps) and sepia war-map palette, **HOI4** above the flag slot, **Fast Focus Tree** with a rounded weather-spark bolt below the flag.
+- `template_owb.png` — Old World Blues marquee/neon title style, gold bulb letters, **OWB** only above the flag slot, **Fast Focus Tree** with a matching Fallout marquee bolt below the flag.
+
+An optional sibling `.json` file may set `flag_x` / `flag_y` for the 82x52 overlay. Otherwise the flag is centred.
+
 Search for the country tag's flag from the end of the playset backwards, then vanilla:
 
 1. `gfx/flags/TAG.tga` (also `.png`)
 2. Ideology variants (`TAG_neutrality.tga`, ...)
 3. First `gfx/flags/TAG*.tga`
 
-HOI4 flags are typically 82x52 TGA. The thumbnail is always 512x512 PNG. Scale the flag to fit, then pad with a transparent background.
+Option priority:
 
-`--thumbnail` is a path to one image file. That single image is used as `thumbnail.png` for every country tag generated in that run. It is not a per-country override: one path, every generated mod. If the option is omitted, each country uses its own flag instead.
+1. `--thumbnail` — one 512x512 image used for every country in the run. Must already be 512x512. Ignores `--thumbnail-template` and `--country-flag`.
+2. `--thumbnail-template` — a file path, or an alias taken from the part after `template_` (`vanilla` → `template_vanilla`, `owb` → `template_owb`). Must be 512x512. Default `vanilla`.
+3. `--country-flag` — one 82x52 image used as the flag for every country in the run. Must already be 82x52. Ignored if `--thumbnail` is set.
+
+If `--country-flag` is omitted, each country uses its own `gfx/flags` image (resized to 82x52 only when the source is not already that size).
 
 ## Save-game country detection
 
@@ -151,12 +163,13 @@ Used only when `country_tags` is not set and `all_countries` is false.
 
 ## Package map
 
-- `hoi4_focus_gen/cli.py` — argparse and YAML merge
-- `hoi4_focus_gen/config.py` — options dataclass
-- `hoi4_focus_gen/paths.py` — document / Steam / workshop discovery
-- `hoi4_focus_gen/pdx.py` — Clausewitz parse, cost rewrite, `.mod` writer
-- `hoi4_focus_gen/game.py` — launcher DB, playset, load-order resolve, saves, flags
-- `hoi4_focus_gen/thumbnail.py` — 512x512 flag thumbnail
-- `hoi4_focus_gen/generate.py` — orchestration and file output
+- `src/cli.py` — argparse and YAML merge
+- `src/config.py` — options dataclass
+- `src/paths.py` — document / Steam / workshop discovery
+- `src/pdx.py` — Clausewitz parse, cost rewrite, `.mod` writer
+- `src/game.py` — launcher DB, playset, load-order resolve, saves, flags
+- `src/thumbnail.py` — 512x512 templates, 82x52 flag overlay, size checks
+- `src/generate.py` — orchestration and file output
+- `assets/thumbnail_templates/` — bundled `template_vanilla` and `template_owb` frames
 
 When changing generator behaviour, update this file and the README CLI table together.

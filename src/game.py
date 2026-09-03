@@ -8,12 +8,14 @@ import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from hoi4_focus_gen.paths import GamePaths, slugify
-from hoi4_focus_gen.pdx import (
+from .paths import GamePaths, slugify
+from .pdx import (
     CountryEval,
     FocusTreeInfo,
+    country_tag_entries_from_text,
     country_tags_from_text,
     focus_trees_in_file,
+    loc_country_names_from_text,
     parse_descriptor_file,
     parse_pdx_file,
     read_pdx_text,
@@ -203,6 +205,44 @@ def resolve_country_tags(paths: GamePaths, playset: Playset) -> list[str]:
     return tags
 
 
+def _name_from_country_tag_file(tag: str, relative: str) -> str | None:
+    stem = Path(relative).stem.strip()
+    prefix = f"{tag} - "
+    if stem.upper().startswith(prefix.upper()):
+        rest = stem[len(prefix) :].strip()
+        return rest or None
+    if stem.upper() == tag.upper():
+        return None
+    return stem or None
+
+
+def _english_loc_country_names(paths: GamePaths, playset: Playset) -> dict[str, str]:
+    names: dict[str, str] = {}
+    for loaded in resolve_game_files(paths, playset, "localisation").values():
+        filename = loaded.relative_name.lower()
+        if "countries" not in filename or not filename.endswith("_l_english.yml"):
+            continue
+        names.update(loc_country_names_from_text(read_pdx_text(loaded.path)))
+    return names
+
+
+def resolve_country_names(paths: GamePaths, playset: Playset) -> dict[str, str]:
+    """Map tags to English country names via country_tags filenames, then localisation."""
+    names: dict[str, str] = {}
+    for loaded in resolve_game_files(paths, playset, COUNTRY_TAGS_DIR).values():
+        for tag, relative in country_tag_entries_from_text(read_pdx_text(loaded.path)):
+            parsed = _name_from_country_tag_file(tag, relative)
+            if parsed:
+                names[tag] = parsed
+            else:
+                names.setdefault(tag, tag)
+    loc_names = _english_loc_country_names(paths, playset)
+    for tag, loc_name in loc_names.items():
+        if tag not in names or names[tag] == tag:
+            names[tag] = loc_name
+    return names
+
+
 @dataclass
 class CountryFocusPlan:
     tag: str
@@ -382,8 +422,9 @@ def generated_mod_folder_name(last_mod_name: str, tag: str) -> str:
     return f"{slugify(last_mod_name)}_{tag.lower()}_focus_tree_edited"
 
 
-def generated_mod_display_name(tag: str) -> str:
-    return f"{tag} Focus Tree Edited"
+def generated_mod_display_name(country_name: str) -> str:
+    cleaned = country_name.replace('"', "'").strip()
+    return f"{cleaned} Focus Tree Edited"
 
 
 def remove_local_mod_files(paths: GamePaths, folder_name: str) -> None:

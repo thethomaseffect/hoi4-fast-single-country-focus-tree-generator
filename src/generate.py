@@ -4,8 +4,8 @@ import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
-from hoi4_focus_gen.config import Options
-from hoi4_focus_gen.game import (
+from .config import Options
+from .game import (
     CountryFocusPlan,
     Playset,
     find_flag_path,
@@ -16,6 +16,7 @@ from hoi4_focus_gen.game import (
     plan_country_focus,
     register_local_mod,
     remove_local_mod_files,
+    resolve_country_names,
     resolve_country_tags,
     resolve_game_files,
     stale_generated_folders,
@@ -23,15 +24,15 @@ from hoi4_focus_gen.game import (
     update_dlc_load,
     update_playset_backup,
 )
-from hoi4_focus_gen.paths import GamePaths, game_supported_version, resolve_paths
-from hoi4_focus_gen.pdx import (
+from .paths import GamePaths, game_supported_version, resolve_paths
+from .pdx import (
     focus_trees_in_file,
     parse_pdx_file,
     read_pdx_text,
     rewrite_focus_costs,
     write_descriptor,
 )
-from hoi4_focus_gen.thumbnail import create_thumbnail
+from .thumbnail import resolve_thumbnail_template, write_custom_thumbnail, write_templated_thumbnail
 
 MOD_TAGS = ["National Focuses", "Utilities"]
 
@@ -98,9 +99,10 @@ def write_country_mod(
     paths: GamePaths,
     playset: Playset,
     plan: CountryFocusPlan,
+    country_name: str,
 ) -> GeneratedMod:
     folder_name = generated_mod_folder_name(plan.last_mod_name, plan.tag)
-    display_name = generated_mod_display_name(plan.tag)
+    display_name = generated_mod_display_name(country_name)
     for stale in stale_generated_folders(paths, plan.tag, folder_name):
         unregister_local_mod(paths, stale)
         remove_local_mod_files(paths, stale)
@@ -115,12 +117,22 @@ def write_country_mod(
 
     thumbnail_dest = mod_dir / "thumbnail.png"
     if options.thumbnail:
-        create_thumbnail(options.thumbnail, thumbnail_dest)
+        write_custom_thumbnail(options.thumbnail, thumbnail_dest)
     else:
-        flag = find_flag_path(paths, playset, plan.tag)
-        if flag is None:
-            raise FileNotFoundError(f"Could not find a flag for {plan.tag}")
-        create_thumbnail(flag, thumbnail_dest)
+        if options.country_flag:
+            flag = options.country_flag
+            require_flag_size = True
+        else:
+            flag = find_flag_path(paths, playset, plan.tag)
+            if flag is None:
+                raise FileNotFoundError(f"Could not find a flag for {plan.tag}")
+            require_flag_size = False
+        write_templated_thumbnail(
+            resolve_thumbnail_template(options.thumbnail_template),
+            flag,
+            thumbnail_dest,
+            require_flag_size=require_flag_size,
+        )
 
     supported = _supported_version(paths, plan)
     descriptor = write_descriptor(
@@ -164,6 +176,7 @@ def generate(options: Options) -> list[GeneratedMod]:
     playset = load_playset(paths, options.playset)
     loaded_focus = resolve_game_files(paths, playset, "common/national_focus")
     tags = _target_tags(options, paths, playset)
+    country_names = resolve_country_names(paths, playset)
     playlist = _playlist_target(options, playset, paths)
 
     created: list[GeneratedMod] = []
@@ -173,7 +186,13 @@ def generate(options: Options) -> list[GeneratedMod]:
         if plan is None:
             missing.append(tag)
             continue
-        generated = write_country_mod(options, paths, playset, plan)
+        generated = write_country_mod(
+            options,
+            paths,
+            playset,
+            plan,
+            country_names.get(plan.tag, plan.tag),
+        )
         if playlist is not None:
             register_local_mod(
                 paths,

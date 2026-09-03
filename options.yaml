@@ -22,9 +22,15 @@
 # HOI4 focus cost in weeks. 0 completes a focus at the start of the next in-game day.
 # focus_time: 0
 
-# Path to one image file. That same image is used as thumbnail.png for every
-# country tag generated in this run. Leave commented to use each country's flag.
+# Path to one 512x512 image. That same image is used as thumbnail.png for every
+# country tag generated in this run. When set, thumbnail_template and country_flag are ignored.
 # thumbnail: C:/Users/[replace with username]/Pictures/my_thumbnail.png
+
+# Bundled template name (vanilla, owb) or a path to a 512x512 PNG. Ignored if thumbnail is set.
+# thumbnail_template: vanilla
+
+# Path to one 82x52 flag image used for every country in this run. Ignored if thumbnail is set.
+# country_flag: C:/Users/[replace with username]/Pictures/my_flag.tga
 
 # Path overrides for non-default install locations.
 # hoi4_documents: C:/Users/[replace with username]/Documents/Paradox Interactive/Hearts of Iron IV
