@@ -1,0 +1,33 @@
+# HOI4 Single Country Focus Tree Generator
+# Priority: CLI arguments, then this file, then built-in defaults.
+# Uncomment a line to override a default.
+
+# Comma-separated country tag(s). Ignored when all_countries is true.
+# Leave commented to use the country from the most recent continue-game save.
+# country_tags: NCR
+
+# Create or update a generated mod for every country that has a loaded focus tree.
+# all_countries: false
+
+# Override the HOI4 save games directory. Only used when country_tags is not set.
+# save_game_location: C:/Users/[replace with username]/Documents/Paradox Interactive/Hearts of Iron IV/save games
+
+# Playset to read load order from. Leave commented to use the currently selected playset.
+# playset: Old World Blues - Basic
+
+# Playset that should receive generated mods at the bottom of the load order.
+# Set to false to create files without changing any playset.
+# add_to_playlist: Old World Blues - Basic
+
+# HOI4 focus cost in weeks. 0 completes a focus at the start of the next in-game day.
+# focus_time: 0
+
+# Path to one image file. That same image is used as thumbnail.png for every
+# country tag generated in this run. Leave commented to use each country's flag.
+# thumbnail: C:/Users/[replace with username]/Pictures/my_thumbnail.png
+
+# Path overrides for non-default install locations.
+# hoi4_documents: C:/Users/[replace with username]/Documents/Paradox Interactive/Hearts of Iron IV
+# mods_directory: C:/Users/[replace with username]/Documents/Paradox Interactive/Hearts of Iron IV/mod
+# workshop_content: C:/Program Files (x86)/Steam/steamapps/workshop/content/394360
+# hoi4_install: C:/Program Files (x86)/Steam/steamapps/common/Hearts of Iron IV
