@@ -4,7 +4,7 @@
 
 This is a tool for Hearts of Iron 4 that allows generating modified versions of focus trees for each individual country in a playset. The console commands available affect all players, making it quite awkward for players who want to complete focuses at their own pace. Generic mods also rely on the same framework and so affect every country in the game.
 
-The thumbnail of any created mods is the country flag overlaid on a 512x512 template (`template_vanilla` by default). This can of course be manually edited later, but reruns of the script will overwrite any changes so be sure to back them up.
+The thumbnail of any created mods is the country flag overlaid on a 512x512 template (`template_vanilla` by default). This can of course be manually edited later, but reruns of the script will overwrite any changes so be sure to back them up. If the previous generated mod has a `remote_file_id` (Steam Workshop), that id is kept.
 
 This tool analyses a playset and generates an individual mod for every country tailored to the version of the focus tree that will actually be loaded by the game. The advantages of this approach are:
 

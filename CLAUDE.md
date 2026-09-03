@@ -114,7 +114,7 @@ Naming:
 - Country name comes from the playset `common/country_tags` file (`NCR = "countries/NCR - New California Republic.txt"`), then English localisation `TAG:` if the filename is only the tag (`USA.txt` → `United States`)
 - Country tag is part of the folder name so `--all-countries` cannot collide when several countries share the same last editor
 
-`descriptor.mod` has no `path`. The sibling `[slug].mod` file sets `path` with forward slashes, matching other local mods.
+`descriptor.mod` has no `path`. The sibling `[slug].mod` file sets `path` with forward slashes, matching other local mods. If the previous generated folder or `.mod` file has `remote_file_id`, copy that value into both rewritten files so a Steam Workshop item keeps the same id.
 
 Do **not** set `replace_path="common/national_focus"` on generated mods. That would wipe every other country's tree. Overwrite only the copied filenames.
 

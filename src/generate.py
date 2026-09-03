@@ -29,6 +29,7 @@ from .pdx import (
     focus_trees_in_file,
     parse_pdx_file,
     read_pdx_text,
+    remote_file_id_for_mod,
     rewrite_focus_costs,
     write_descriptor,
 )
@@ -106,7 +107,14 @@ def write_country_mod(
 ) -> GeneratedMod:
     folder_name = generated_mod_folder_name(plan.last_mod_name, plan.tag)
     display_name = generated_mod_display_name(country_name, plan.last_mod_name, aliases)
-    for stale in stale_generated_folders(paths, plan.tag, folder_name):
+    stale_folders = stale_generated_folders(paths, plan.tag, folder_name)
+    remote_file_id = remote_file_id_for_mod(paths.mods, folder_name)
+    if not remote_file_id:
+        for stale in stale_folders:
+            remote_file_id = remote_file_id_for_mod(paths.mods, stale)
+            if remote_file_id:
+                break
+    for stale in stale_folders:
         unregister_local_mod(paths, stale)
         remove_local_mod_files(paths, stale)
     mod_dir = paths.mods / folder_name
@@ -140,6 +148,7 @@ def write_country_mod(
         tags=MOD_TAGS,
         dependencies=plan.dependencies,
         supported_version=supported,
+        remote_file_id=remote_file_id,
     )
     (mod_dir / "descriptor.mod").write_text(descriptor, encoding="utf-8")
 
@@ -150,6 +159,7 @@ def write_country_mod(
         dependencies=plan.dependencies,
         supported_version=supported,
         path=mod_path,
+        remote_file_id=remote_file_id,
     )
     (paths.mods / f"{folder_name}.mod").write_text(registry, encoding="utf-8")
 

@@ -293,6 +293,7 @@ DESCRIPTOR_NAME_RE = re.compile(r'^\s*name\s*=\s*"([^"]*)"', re.MULTILINE)
 REPLACE_PATH_RE = re.compile(r'^\s*replace_path\s*=\s*"([^"]*)"', re.MULTILINE)
 SUPPORTED_VERSION_RE = re.compile(r'^\s*supported_version\s*=\s*"([^"]*)"', re.MULTILINE)
 VERSION_RE = re.compile(r'^\s*version\s*=\s*"([^"]*)"', re.MULTILINE)
+REMOTE_FILE_ID_RE = re.compile(r'^\s*remote_file_id\s*=\s*"([^"]*)"', re.MULTILINE)
 
 
 @dataclass
@@ -301,6 +302,7 @@ class DescriptorInfo:
     replace_paths: set[str]
     supported_version: str | None
     version: str | None
+    remote_file_id: str | None
     text: str
 
 
@@ -312,6 +314,9 @@ def parse_descriptor_text(text: str) -> DescriptorInfo:
             SUPPORTED_VERSION_RE.search(text).group(1) if SUPPORTED_VERSION_RE.search(text) else None
         ),
         version=VERSION_RE.search(text).group(1) if VERSION_RE.search(text) else None,
+        remote_file_id=(
+            REMOTE_FILE_ID_RE.search(text).group(1) if REMOTE_FILE_ID_RE.search(text) else None
+        ),
         text=text,
     )
 
@@ -320,6 +325,14 @@ def parse_descriptor_file(path: Path) -> DescriptorInfo | None:
     if not path.is_file():
         return None
     return parse_descriptor_text(read_pdx_text(path))
+
+
+def remote_file_id_for_mod(mods_dir: Path, folder_name: str) -> str | None:
+    for path in (mods_dir / folder_name / "descriptor.mod", mods_dir / f"{folder_name}.mod"):
+        info = parse_descriptor_file(path)
+        if info and (info.remote_file_id or "").strip():
+            return info.remote_file_id.strip()
+    return None
 
 
 def _format_cost(value: float) -> str:
@@ -391,6 +404,7 @@ def write_descriptor(
     picture: str = "thumbnail.png",
     version: str = "1.0",
     path: str | None = None,
+    remote_file_id: str | None = None,
 ) -> str:
     lines = [f'version="{version}"', "tags={"]
     for tag in tags:
@@ -406,5 +420,7 @@ def write_descriptor(
     lines.append(f'supported_version="{supported_version}"')
     if path:
         lines.append(f'path="{path}"')
+    if remote_file_id:
+        lines.append(f'remote_file_id="{remote_file_id}"')
     lines.append("")
     return "\n".join(lines)
